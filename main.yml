@@ -1,0 +1,134 @@
+---
+# =============================================================
+# Playbook : Configuration automatisée FortiGate — 3 sites
+# Auteur   : Haroun Benadel — Stage NAFTAL 2025/2026
+# Usage    : ansible-playbook -i inventories/hosts.yml playbook_fortigate.yml
+# =============================================================
+
+- name: "Configuration FortiGate — Tous les sites"
+  hosts: fortigates
+  gather_facts: false
+  collections:
+    - fortinet.fortios
+
+  vars_files:
+    - vault_secrets.yml   # ansible-vault (mdp chiffrés, non inclus dans le repo)
+
+  tasks:
+
+    # ── 1. VÉRIFICATION CONNECTIVITÉ ──────────────────────────
+    - name: "Vérifier la connexion au FortiGate"
+      fortios_system_global:
+        vdom: "{{ vdom }}"
+        state: present
+        system_global:
+          hostname: "{{ site_name }}-FGT"
+      tags: [connectivity, base]
+
+    # ── 2. CONFIGURATION DES INTERFACES ───────────────────────
+    - name: "Configurer interface WAN"
+      fortios_system_interface:
+        vdom: "{{ vdom }}"
+        state: present
+        system_interface:
+          name: "wan1"
+          mode: "dhcp"
+          allowaccess: "ping https ssh"
+          description: "Interface WAN — {{ site_name }}"
+      tags: [interfaces]
+
+    - name: "Configurer interface LAN"
+      fortios_system_interface:
+        vdom: "{{ vdom }}"
+        state: present
+        system_interface:
+          name: "internal"
+          ip: "{{ lan_ip }}/{{ lan_mask }}"
+          allowaccess: "ping https ssh"
+          description: "Interface LAN — {{ site_name }}"
+      tags: [interfaces]
+
+    # ── 3. POLITIQUE DE SÉCURITÉ (ACL) ────────────────────────
+    - name: "Créer politique LAN vers WAN (autoriser)"
+      fortios_firewall_policy:
+        vdom: "{{ vdom }}"
+        state: present
+        firewall_policy:
+          policyid: 1
+          name: "LAN-to-WAN"
+          srcintf:
+            - name: "internal"
+          dstintf:
+            - name: "wan1"
+          srcaddr:
+            - name: "all"
+          dstaddr:
+            - name: "all"
+          action: "accept"
+          schedule: "always"
+          service:
+            - name: "ALL"
+          nat: "enable"
+          status: "enable"
+      tags: [firewall, acl]
+
+    - name: "Bloquer trafic entrant non sollicité"
+      fortios_firewall_policy:
+        vdom: "{{ vdom }}"
+        state: present
+        firewall_policy:
+          policyid: 2
+          name: "WAN-to-LAN-DENY"
+          srcintf:
+            - name: "wan1"
+          dstintf:
+            - name: "internal"
+          srcaddr:
+            - name: "all"
+          dstaddr:
+            - name: "all"
+          action: "deny"
+          schedule: "always"
+          service:
+            - name: "ALL"
+          status: "enable"
+      tags: [firewall, acl]
+
+    # ── 4. VPN IPSEC SITE-À-SITE ──────────────────────────────
+    - name: "Configurer phase 1 VPN IPSec"
+      fortios_vpn_ipsec_phase1_interface:
+        vdom: "{{ vdom }}"
+        state: present
+        vpn_ipsec_phase1_interface:
+          name: "VPN-HQ"
+          type: "static"
+          interface: "wan1"
+          peertype: "any"
+          proposal: "aes256-sha256"
+          dhgrp: "14"
+          remote_gw: "{{ vpn_peer_ip }}"
+          psksecret: "{{ vault_vpn_psk }}"
+          dpd: "on-idle"
+      tags: [vpn]
+
+    - name: "Configurer phase 2 VPN IPSec"
+      fortios_vpn_ipsec_phase2_interface:
+        vdom: "{{ vdom }}"
+        state: present
+        vpn_ipsec_phase2_interface:
+          name: "VPN-HQ-P2"
+          phase1name: "VPN-HQ"
+          proposal: "aes256-sha256"
+          src_subnet: "{{ lan_network }}/{{ lan_mask }}"
+          dst_subnet: "{{ remote_lan_network }}/{{ lan_mask }}"
+      tags: [vpn]
+
+    # ── 5. SERVEUR DNS ─────────────────────────────────────────
+    - name: "Configurer DNS"
+      fortios_system_dns:
+        vdom: "{{ vdom }}"
+        state: present
+        system_dns:
+          primary: "8.8.8.8"
+          secondary: "1.1.1.1"
+      tags: [dns]

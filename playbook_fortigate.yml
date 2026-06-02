@@ -1,0 +1,96 @@
+# 🔧 Network Automation — Stage NAFTAL
+
+> Automatisation Fortinet/Ansible — Stage de fin d'études (6 mois)  
+> **NAFTAL — Chiraga, Alger | 30/11/2025 – 31/05/2026**
+
+---
+
+## 📌 Contexte
+
+Dans le cadre de mon stage de fin d'études en tant que Technicien Réseaux & Systèmes chez **NAFTAL** (entreprise nationale algérienne de distribution de carburants), j'ai automatisé la configuration de **3 pare-feux FortiGate** répartis sur **3 sites distincts** à l'aide d'**Ansible**.
+
+Ce repo contient des exemples anonymisés (sans adresses IP réelles ni données sensibles) des travaux réalisés.
+
+---
+
+## 🗂️ Structure du projet
+
+```
+network-automation/
+├── ansible/
+│   ├── inventories/
+│   │   └── hosts.yml          # Inventaire des équipements (anonymisé)
+│   ├── roles/
+│   │   └── fortigate_base/
+│   │       └── tasks/
+│   │           └── main.yml   # Tâches de configuration FortiGate
+│   ├── playbook_fortigate.yml  # Playbook principal
+│   └── playbook_dhcp.yml       # Playbook DHCP Linux
+├── gns3-labs/
+│   └── README.md              # Description des labs GNS3
+└── README.md
+```
+
+---
+
+## ⚙️ Technologies utilisées
+
+| Outil | Usage |
+|---|---|
+| **Ansible** | Automatisation configuration réseau |
+| **FortiGate (Fortinet)** | Pare-feu / VPN / ACL |
+| **Cisco IOS** | Routeurs & switches |
+| **GNS3** | Simulation et test des topologies |
+| **Linux (Debian/CentOS)** | Serveurs DHCP, DNS |
+| **Windows Server** | Active Directory, administration |
+
+---
+
+## 🚀 Ce qui a été automatisé
+
+- ✅ Configuration des interfaces réseau sur 3 FortiGate (3 sites)
+- ✅ Déploiement des politiques de sécurité (firewall policies)
+- ✅ Configuration VPN site-à-site IPSec entre les 3 sites
+- ✅ Mise en place des ACL et règles de filtrage
+- ✅ Configuration DHCP sur serveurs Linux
+- ✅ Tests de connectivité automatisés
+
+---
+
+## 📋 Prérequis
+
+```bash
+# Python 3.8+
+pip install ansible
+pip install fortinet-ansible-galaxy
+
+# Collection Fortinet officielle
+ansible-galaxy collection install fortinet.fortios
+```
+
+---
+
+## 🧪 Utilisation
+
+```bash
+# Tester la connectivité vers les équipements
+ansible -i inventories/hosts.yml all -m ping
+
+# Lancer le playbook principal FortiGate
+ansible-playbook -i inventories/hosts.yml playbook_fortigate.yml
+
+# Lancer le playbook DHCP
+ansible-playbook -i inventories/hosts.yml playbook_dhcp.yml
+```
+
+---
+
+## 👤 Auteur
+
+**Haroun Benadel**  
+Technicien Réseaux & Systèmes  
+[linkedin.com/in/haroun-benadel-0126b1355](https://www.linkedin.com/in/haroun-benadel-0126b1355)
+
+---
+
+> ⚠️ *Ce repo est à but pédagogique. Toutes les adresses IP, noms d'hôtes et données sensibles ont été anonymisés.*
